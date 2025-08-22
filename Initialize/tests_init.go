@@ -2,20 +2,21 @@ package Initialize
 
 import (
 	"context"
+	"fmt"
 	"github.com/renxingcode/esign-go-sdk/config"
 	"log"
 	"os"
 )
 
 type TestClient struct {
-	Cfg *config.Config
-	Ctx context.Context
+	Conf *config.Config
+	Ctx  context.Context
 }
 
-func NewTestClient() *TestClient {
+func NewTestClient() (*TestClient, error) {
 	rootPath, err := config.GetProjectRootPath()
 	if err != nil {
-		log.Fatalf("获取项目根目录失败: %s", err)
+		return nil, fmt.Errorf("获取项目根目录失败: %w\n", err)
 	}
 	config.LoadEnvData(rootPath)
 
@@ -23,14 +24,22 @@ func NewTestClient() *TestClient {
 	appSecret := os.Getenv("ESIGN_APP_SECRET")
 	baseURL := os.Getenv("ESIGN_BASE_URL")
 	orgID := os.Getenv("ESIGN_ORG_ID")
-	if appID == "" || appSecret == "" || baseURL == "" || orgID == "" {
-		log.Fatal("ESIGN_APP_ID, ESIGN_APP_SECRET, ESIGN_BASE_URL and ESIGN_ORG_ID environment variables are required")
+	grantType := os.Getenv("ESIGN_GRANT_TYPE")
+	isWriteLog := os.Getenv("IS_WRITE_LOG")
+	if isWriteLog == "" {
+		isWriteLog = "false"
+	}
+	if appID == "" || appSecret == "" || baseURL == "" || orgID == "" || grantType == "" {
+		log.Fatal("ESIGN_APP_ID, ESIGN_APP_SECRET, ESIGN_BASE_URL, ESIGN_ORG_ID and ESIGN_GRANT_TYPE environment variables are required")
 	}
 
-	cfg := config.NewConfig(appID, appSecret, baseURL, orgID)
+	conf, err := config.NewConfig(appID, appSecret, baseURL, orgID, grantType, isWriteLog)
+	if err != nil {
+		return nil, fmt.Errorf("创建配置失败: %w\n", err)
+	}
 	ctx := context.Background()
 	return &TestClient{
-		Cfg: cfg,
-		Ctx: ctx,
-	}
+		Conf: conf,
+		Ctx:  ctx,
+	}, nil
 }

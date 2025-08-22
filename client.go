@@ -8,8 +8,8 @@ import (
 
 // e签宝 SDK 的主入口点
 type Client struct {
-	Auth     *auth_api.Service
-	Template *template_api.Service
+	Auth     *auth_api.AuthService
+	Template *template_api.TemplateService
 }
 
 // NewClient 创建一个新的 e签宝 客户端
