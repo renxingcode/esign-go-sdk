@@ -10,12 +10,13 @@ import (
 )
 
 type Config struct {
-	AppID      string
-	AppSecret  string
-	BaseURL    string
-	OrgId      string
-	GrantType  string
-	IsWriteLog bool
+	AppID       string
+	AppSecret   string
+	BaseURL     string
+	OrgId       string
+	GrantType   string
+	IsWriteLog  bool
+	RedisClient *RedisClient
 }
 
 // Option 是用于配置客户端的函数类型，采用选项模式，便于未来扩展
@@ -23,19 +24,29 @@ type Option func(*Config)
 
 // NewConfig 创建一个默认配置
 func NewConfig(appID, appSecret, baseURL, orgID, grantType, isWriteLog string, opts ...Option) (*Config, error) {
+	//是否写入日志
 	isWriteLogBool, err := strconv.ParseBool(isWriteLog)
 	if err != nil {
 		fmt.Printf(".env配置文件中的isWriteLog取值异常,未能成功转换为bool类型:%v,应该是true或者false,如果不需要写入日志,可以删除此配置项\n", err)
 		return nil, fmt.Errorf("isWriteLog配置异常:%w\n", err)
 	}
 
+	//缓存配置
+	redisClient := NewRedisClient("127.0.0.1:6379", "", 0)
+	if err = redisClient.Ping(); err != nil {
+		defer redisClient.Close() // 连接失败时关闭客户端
+		return nil, fmt.Errorf("Redis连接失败:%w\n", err)
+	}
+
+	// 应用配置
 	conf := &Config{
-		AppID:      appID,
-		AppSecret:  appSecret,
-		BaseURL:    baseURL,
-		OrgId:      orgID,
-		GrantType:  grantType,
-		IsWriteLog: isWriteLogBool,
+		AppID:       appID,
+		AppSecret:   appSecret,
+		BaseURL:     baseURL,
+		OrgId:       orgID,
+		GrantType:   grantType,
+		IsWriteLog:  isWriteLogBool,
+		RedisClient: redisClient,
 	}
 	for _, opt := range opts {
 		opt(conf)

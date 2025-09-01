@@ -5,6 +5,13 @@ import (
 	"github.com/renxingcode/esign-go-sdk/utils"
 )
 
+// 缓存的常量
+const (
+	ESignAccessTokenKey        = "esign_access_token" //e签宝的access_token的key
+	ESignAccessTokenExpireTime = 7200                 //e签宝的access_token的过期时间,单位秒
+)
+
+// 请求e签宝的URL的常量
 const (
 	GetESignTokenPath = "/v1/oauth2/access_token" //获取e签宝的token
 )

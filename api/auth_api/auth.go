@@ -2,11 +2,14 @@ package auth_api
 
 import (
 	"context"
+	"fmt"
 	"github.com/renxingcode/esign-go-sdk/api"
 	"github.com/renxingcode/esign-go-sdk/config"
 	"github.com/renxingcode/esign-go-sdk/types"
 	"github.com/renxingcode/esign-go-sdk/utils"
+	"github.com/zeromicro/go-zero/core/logx"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -22,8 +25,8 @@ var _ AuthServiceInterface = (*AuthService)(nil)
 type AuthService struct {
 	config    *config.Config
 	client    *http.Client // 可以接收一个自定义的 http.Client
-	token     string
 	expiresAt time.Time
+	token     string
 }
 
 // NewAuthService 创建一个认证服务实例
@@ -36,7 +39,36 @@ func NewAuthService(cfg *config.Config) *AuthService {
 
 // GetESignToken 获取e签宝的token
 func (s *AuthService) GetESignToken(ctx context.Context) (token string, err error) {
-	// 发起HTTp请求,获取e签宝的token
+	// 从缓存中获取token
+	token, err = s.GetESignTokenFromCacheData(ctx)
+	if err != nil {
+		return "", err
+	}
+	if token != "" {
+		logx.Infof("从缓存获取 token 成功")
+		return token, nil
+	}
+
+	// 从e签宝服务器获取token
+	eSignTokenResp, err := s.GetESignTokenFromESignServer(ctx)
+	if err != nil {
+		return "", err
+	}
+	token = eSignTokenResp.Token
+	logx.Infof("从e签宝服务器获取 token 成功")
+
+	// 缓存token
+	err = s.SetESignTokenToCacheData(ctx, token, eSignTokenResp.ExpiresIn)
+	if err != nil {
+		return token, err
+	}
+	logx.Infof("写入缓存 token 成功")
+
+	return token, nil
+}
+
+func (s *AuthService) GetESignTokenFromESignServer(ctx context.Context) (eSignTokenResp *types.GetESignTokenResponse, err error) {
+	// 发起HTTP请求,获取e签宝的token
 	requestUrl := s.config.BaseURL + api.GetESignTokenPath
 	requestBody := &types.GetESignTokenRequest{
 		AppId:     s.config.AppID,
@@ -45,20 +77,65 @@ func (s *AuthService) GetESignToken(ctx context.Context) (token string, err erro
 	}
 	response, err := utils.SendHttpPostRequest(requestUrl, requestBody, nil, s.config.IsWriteLog)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// 解析响应体
 	responseStruct, err := api.GetESignCommonResponse(response)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// 解析Data结构
 	responseDataStruct := &types.GetESignTokenResponse{}
 	err = utils.JsonUnmarshalToStruct(responseStruct.Data, &responseDataStruct)
 	if err != nil {
+		return nil, err
+	}
+	return responseDataStruct, nil
+}
+
+func (s *AuthService) GetESignTokenFromCacheData(ctx context.Context) (token string, err error) {
+	if s.config.RedisClient == nil {
+		logx.Infof("Redis组件未初始化，跳过缓存获取")
+		return "", nil
+	}
+
+	token, err = s.config.RedisClient.Get(api.ESignAccessTokenKey)
+	if err != nil {
+		logx.Errorf("从缓存获取 token 失败: %v", err)
 		return "", err
 	}
-	return responseDataStruct.Token, nil
+
+	//调用e签宝接口检测Token是否有效,如果无效则重新获取 todo
+
+	return token, nil
+}
+
+func (s *AuthService) SetESignTokenToCacheData(ctx context.Context, token string, eSignExpiresIn string) error {
+	if s.config.RedisClient == nil {
+		logx.Infof("Redis组件未初始化，跳过缓存设置")
+		return nil
+	}
+
+	//计算过期时间
+	//expiresIn 是毫秒级时间戳，需用 expiresIn - 当前时间 得到剩余有效期
+	expiresInMs, err := strconv.ParseInt(eSignExpiresIn, 10, 64)
+	if err != nil {
+		return fmt.Errorf("解析e签宝的过期时间失败: %w", err)
+	}
+	nowMs := time.Now().UnixMilli()
+	remainMs := expiresInMs - nowMs - 60*1000 // 提前1分钟失效
+	if remainMs <= 0 {
+		remainMs = 5 * 60 * 1000 // 兜底5分钟
+	}
+	expireDuration := time.Duration(remainMs) * time.Millisecond
+
+	//设置缓存
+	err = s.config.RedisClient.Set(api.ESignAccessTokenKey, token, expireDuration)
+	if err != nil {
+		logx.Errorf("设置缓存 token 失败: %v", err)
+		return err
+	}
+	return nil
 }
