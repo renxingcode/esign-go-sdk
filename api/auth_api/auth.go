@@ -1,7 +1,7 @@
 package auth_api
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"github.com/renxingcode/esign-go-sdk/api"
 	"github.com/renxingcode/esign-go-sdk/config"
@@ -15,7 +15,7 @@ import (
 
 // AuthServiceInterface 认证服务应实现的接口
 type AuthServiceInterface interface {
-	GetESignToken(ctx context.Context) (token string, err error)
+	GetESignToken(useCache bool) (token string, err error)
 }
 
 // 编译时检查 Service 是否实现了 AuthServiceInterface 接口
@@ -38,36 +38,38 @@ func NewAuthService(cfg *config.Config) *AuthService {
 }
 
 // GetESignToken 获取e签宝的token
-func (s *AuthService) GetESignToken(ctx context.Context) (token string, err error) {
-	// 从缓存中获取token
-	token, err = s.GetESignTokenFromCacheData(ctx)
-	if err != nil {
-		return "", err
-	}
-	if token != "" {
-		logx.Infof("从缓存获取 token 成功")
-		return token, nil
+func (s *AuthService) GetESignToken(useCache bool) (token string, err error) {
+	if useCache {
+		// 从缓存中获取token
+		token, err = s.GetESignTokenFromCacheData()
+		if err != nil {
+			return "", err
+		}
+		if token != "" {
+			logx.Infof("从缓存获取token成功")
+			return token, nil
+		}
 	}
 
 	// 从e签宝服务器获取token
-	eSignTokenResp, err := s.GetESignTokenFromESignServer(ctx)
+	eSignTokenResp, err := s.GetESignTokenFromESignServer()
 	if err != nil {
 		return "", err
 	}
 	token = eSignTokenResp.Token
-	logx.Infof("从e签宝服务器获取 token 成功")
+	logx.Infof("从e签宝服务器获取token成功")
 
 	// 缓存token
-	err = s.SetESignTokenToCacheData(ctx, token, eSignTokenResp.ExpiresIn)
+	err = s.SetESignTokenToCacheData(token, eSignTokenResp.ExpiresIn)
 	if err != nil {
 		return token, err
 	}
-	logx.Infof("写入缓存 token 成功")
+	logx.Infof("写入缓存token成功")
 
 	return token, nil
 }
 
-func (s *AuthService) GetESignTokenFromESignServer(ctx context.Context) (eSignTokenResp *types.GetESignTokenResponse, err error) {
+func (s *AuthService) GetESignTokenFromESignServer() (eSignTokenResp *types.GetESignTokenResponse, err error) {
 	// 发起HTTP请求,获取e签宝的token
 	requestUrl := s.config.BaseURL + api.GetESignTokenPath
 	requestBody := &types.GetESignTokenRequest{
@@ -75,7 +77,10 @@ func (s *AuthService) GetESignTokenFromESignServer(ctx context.Context) (eSignTo
 		Secret:    s.config.AppSecret,
 		GrantType: s.config.GrantType,
 	}
-	response, err := utils.SendHttpPostRequest(requestUrl, requestBody, nil, s.config.IsWriteLog)
+	requestHeaders := map[string]string{
+		"Content-Type": "application/json; charset=UTF-8",
+	}
+	response, err := utils.SendHttpPostRequest(requestUrl, requestBody, requestHeaders, s.config.IsWriteLog)
 	if err != nil {
 		return nil, err
 	}
@@ -87,15 +92,15 @@ func (s *AuthService) GetESignTokenFromESignServer(ctx context.Context) (eSignTo
 	}
 
 	// 解析Data结构
-	responseDataStruct := &types.GetESignTokenResponse{}
+	responseDataStruct := types.GetESignTokenResponse{}
 	err = utils.JsonUnmarshalToStruct(responseStruct.Data, &responseDataStruct)
 	if err != nil {
 		return nil, err
 	}
-	return responseDataStruct, nil
+	return &responseDataStruct, nil
 }
 
-func (s *AuthService) GetESignTokenFromCacheData(ctx context.Context) (token string, err error) {
+func (s *AuthService) GetESignTokenFromCacheData() (token string, err error) {
 	if s.config.RedisClient == nil {
 		logx.Infof("Redis组件未初始化，跳过缓存获取")
 		return "", nil
@@ -112,7 +117,7 @@ func (s *AuthService) GetESignTokenFromCacheData(ctx context.Context) (token str
 	return token, nil
 }
 
-func (s *AuthService) SetESignTokenToCacheData(ctx context.Context, token string, eSignExpiresIn string) error {
+func (s *AuthService) SetESignTokenToCacheData(token string, eSignExpiresIn string) error {
 	if s.config.RedisClient == nil {
 		logx.Infof("Redis组件未初始化，跳过缓存设置")
 		return nil
@@ -130,12 +135,26 @@ func (s *AuthService) SetESignTokenToCacheData(ctx context.Context, token string
 		remainMs = 5 * 60 * 1000 // 兜底5分钟
 	}
 	expireDuration := time.Duration(remainMs) * time.Millisecond
+	logx.Infof("设置缓存token的过期时间: %v", expireDuration)
 
 	//设置缓存
 	err = s.config.RedisClient.Set(api.ESignAccessTokenKey, token, expireDuration)
 	if err != nil {
-		logx.Errorf("设置缓存 token 失败: %v", err)
+		logx.Errorf("设置缓存token失败: %v", err)
 		return err
 	}
 	return nil
+}
+
+func (s *AuthService) RequestESignHeaders() (map[string]string, error) {
+	token, err := s.GetESignToken(false)
+	if err != nil {
+		return nil, errors.New("获取e签宝token失败:" + err.Error())
+	}
+	requestHeaders := map[string]string{
+		"Content-Type":        "application/json; charset=UTF-8",
+		"X-Tsign-Open-App-Id": s.config.AppID,
+		"X-Tsign-Open-Token":  token,
+	}
+	return requestHeaders, nil
 }

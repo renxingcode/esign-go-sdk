@@ -19,3 +19,6 @@ type GetESignTokenResponse struct {
 	Token        string `json:"token"`
 	RefreshToken string `json:"refreshToken"`
 }
+
+type GetESignTemplateResponse struct {
+}

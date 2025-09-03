@@ -13,7 +13,8 @@ const (
 
 // 请求e签宝的URL的常量
 const (
-	GetESignTokenPath = "/v1/oauth2/access_token" //获取e签宝的token
+	GetESignTokenPath          = "/v1/oauth2/access_token"   //获取e签宝的token
+	GetESignTemplateDetailPath = "/v3/sign-templates/detail" //获取e签宝的合同模板详情
 )
 
 // GetESignCommonResponse 获取e签宝的通用响应,并解析到结构体

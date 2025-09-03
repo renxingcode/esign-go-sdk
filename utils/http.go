@@ -3,7 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/zeromicro/go-zero/core/logx"
 	"io/ioutil"
 	"net/http"
@@ -14,7 +14,7 @@ func SendHttpGetRequest(requestUrl string, requestHeaders map[string]string, isW
 	// 创建一个新的 GET 请求
 	req, err := http.NewRequest("GET", requestUrl, nil)
 	if err != nil {
-		return "", err
+		return "", errors.New("创建GET请求失败:" + err.Error())
 	}
 
 	// 设置请求头
@@ -29,7 +29,7 @@ func SendHttpGetRequest(requestUrl string, requestHeaders map[string]string, isW
 	resp, err := client.Do(req)
 	if err != nil {
 		logx.Errorf("SendHttpGetRequest发送请求失败: %v", err)
-		return "", err
+		return "", errors.New("发送GET请求失败:" + err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -47,7 +47,7 @@ func SendHttpGetRequest(requestUrl string, requestHeaders map[string]string, isW
 			"responseHttpCode": resp.StatusCode, //HTTP 状态码
 			"responseData":     respBodyStr,
 		}
-		fmt.Println("SendHttpGetRequestLogData:", JsonMarshalIndent(logData))
+		LogxInfow(logData, "SendHttpGetRequestLog")
 	}
 	return respBodyStr, nil
 }
@@ -57,17 +57,16 @@ func SendHttpPostRequest(requestUrl string, requestBody interface{}, requestHead
 	// 将请求体转换为 JSON
 	bodyBytes, err := json.Marshal(requestBody)
 	if err != nil {
-		return "", err
+		return "", errors.New("请求体转换为JSON失败:" + err.Error())
 	}
 
 	// 创建一个新的 POST 请求
 	req, err := http.NewRequest("POST", requestUrl, bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		return "", err
+		return "", errors.New("创建POST请求失败:" + err.Error())
 	}
 
-	// 设置请求头，例如 Content-Type
-	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	// 设置请求头
 	if requestHeaders != nil {
 		for key, value := range requestHeaders {
 			req.Header.Set(key, value)
@@ -79,7 +78,7 @@ func SendHttpPostRequest(requestUrl string, requestBody interface{}, requestHead
 	resp, err := client.Do(req)
 	if err != nil {
 		logx.Errorf("SendHttpPostRequest发送请求失败: %v", err)
-		return "", err
+		return "", errors.New("发送POST请求失败:" + err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -87,7 +86,7 @@ func SendHttpPostRequest(requestUrl string, requestBody interface{}, requestHead
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logx.Errorf("SendHttpPostRequest读取响应内容失败: %v", err)
-		return "", err
+		return "", errors.New("读取响应内容失败:" + err.Error())
 	}
 	respBodyStr := string(respBody)
 
@@ -99,7 +98,7 @@ func SendHttpPostRequest(requestUrl string, requestBody interface{}, requestHead
 			"responseHttpCode": resp.StatusCode, //HTTP 状态码
 			"responseData":     respBodyStr,
 		}
-		fmt.Println("SendHttpPostRequestLogData:", JsonMarshalIndent(logData))
+		LogxInfow(logData, "SendHttpPostRequestLog")
 	}
 	return respBodyStr, nil
 }

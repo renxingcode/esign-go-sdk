@@ -14,7 +14,7 @@ func TestGetToken(t *testing.T) {
 		return
 	}
 	client := esign.NewClient(testClient.Conf)
-	token, err := client.Auth.GetESignToken(testClient.Ctx)
+	token, err := client.Auth.GetESignToken(false)
 	if err != nil {
 		t.Errorf("Failed to get token: %v\n", err)
 		return
