@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logx"
 	"log"
+	"time"
 )
 
 // JsonMarshal 生成紧凑的 JSON 格式，没有换行和缩进
@@ -89,16 +90,25 @@ func JsonUnmarshalToStruct(jsonData any, obj any) error {
 	return nil
 }
 
+// GetCurrentTime 获取当前时间，格式为"年月日时分秒"，例如: 20250911112713
+func GetCurrentTime() string {
+	return time.Now().Format("20060102150405")
+}
+
 // 写入日志方法封装
 func LogxInfow(logData any, logTitle string) {
-	logx.Infow(JsonMarshalNoEscape(logData),
-		logx.Field("logxTitle", logTitle),
-		logx.Field("logxDataType", fmt.Sprintf("%T", logData)),
+	logx.Infow(
+		"",                              //JsonMarshalNoEscape(logData),
+		logx.Field("contents", logData), //直接存储原始数据而不是 JSON 字符串
+		logx.Field("title", logTitle),
+		logx.Field("data_type", fmt.Sprintf("%T", logData)),
 	)
 }
 func LogxErrorw(logData any, logTitle string) {
-	logx.Errorw(JsonMarshalNoEscape(logData),
-		logx.Field("logxTitle", logTitle),
-		logx.Field("logxDataType", fmt.Sprintf("%T", logData)),
+	logx.Errorw(
+		"",                              //JsonMarshalNoEscape(logData),
+		logx.Field("contents", logData), //直接存储原始数据而不是 JSON 字符串
+		logx.Field("title", logTitle),
+		logx.Field("data_type", fmt.Sprintf("%T", logData)),
 	)
 }

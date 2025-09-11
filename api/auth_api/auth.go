@@ -90,6 +90,9 @@ func (s *AuthService) GetESignTokenFromESignServer() (eSignTokenResp *types.GetE
 	if err != nil {
 		return nil, err
 	}
+	if responseStruct.Code != api.ESignResponseCodeSuccess {
+		return nil, api.GetESignResponseError(responseStruct)
+	}
 
 	// 解析Data结构
 	responseDataStruct := types.GetESignTokenResponse{}
@@ -147,7 +150,7 @@ func (s *AuthService) SetESignTokenToCacheData(token string, eSignExpiresIn stri
 }
 
 func (s *AuthService) RequestESignHeaders() (map[string]string, error) {
-	token, err := s.GetESignToken(false)
+	token, err := s.GetESignToken(true)
 	if err != nil {
 		return nil, errors.New("获取e签宝token失败:" + err.Error())
 	}
