@@ -40,7 +40,7 @@ func TestCreateByTemplate(t *testing.T) {
 	// 1. 获取模板信息
 	eSignTemplateId := "213fd9a04b2549818e15871a65bdb41b" //流程模板ID
 	queryComponents := true                               //是否需要查询控件信息:true-是 false-否(默认false)
-	writeLog := true                                      //获取模板返回的数据量很大,因此可以根据情况考虑是否关闭写入日志
+	writeLog := false                                     //获取模板返回的数据量很大,因此可以根据情况考虑是否关闭写入日志
 	eSignResponseTemplateDetail, err := client.Template.GetESignTemplateDetail(eSignTemplateId, queryComponents, writeLog)
 	if err != nil {
 		t.Errorf("GetESignTemplateDetail error1: %v", err)
@@ -79,5 +79,20 @@ func TestCreateByTemplate(t *testing.T) {
 		t.Errorf("CreateByTemplate error1: %v", err)
 		return
 	}
-	utils.LogxInfow(createByTemplateResponse, "createByTemplateResponse")
+	//utils.LogxInfow(createByTemplateResponse, "createByTemplateResponse")
+	if createByTemplateResponse.Code != api.ESignResponseCodeSuccess {
+		t.Errorf("CreateByTemplate error2: %v", api.GetESignResponseError(createByTemplateResponse))
+		return
+	}
+	createByTemplateResponseData := types.CreateESignFileByTemplateResponse{}
+	err = utils.JsonUnmarshalToStruct(createByTemplateResponse.Data, &createByTemplateResponseData)
+	if err != nil {
+		t.Errorf("CreateByTemplate JsonUnmarshalToStruct error: %v", err)
+		return
+	}
+
+	// 6.将e签宝返回的downloadUrl上传到自己服务器或OSS todo
+	createByTemplateResponseData.DownloadOssUrl = "todo_your_server_file_url"
+
+	utils.LogxInfow(createByTemplateResponseData, "createByTemplateResponseData")
 }

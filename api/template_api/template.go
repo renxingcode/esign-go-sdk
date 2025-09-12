@@ -1,7 +1,6 @@
 package template_api
 
 import (
-	"errors"
 	"github.com/renxingcode/esign-go-sdk/api"
 	"github.com/renxingcode/esign-go-sdk/api/auth_api"
 	"github.com/renxingcode/esign-go-sdk/config"
@@ -53,19 +52,39 @@ func (s *TemplateService) GetESignTemplateDetail(eSignTemplateId string, queryCo
 	requestUrl := s.config.BaseURL + api.GetESignTemplateDetailPath + "?" + params.Encode()
 	requestHeaders, err := s.authService.RequestESignHeaders()
 	if err != nil {
-		return nil, errors.New(actionName + "构建请求e签宝的headers失败:" + err.Error())
+		return nil, api.BuildRequestESignHeadersError(actionName, err)
 	}
 	response, err := utils.SendHttpGetRequest(requestUrl, requestHeaders, writeLog)
 	if err != nil {
-		return nil, errors.New(actionName + "发送http请求失败:" + err.Error())
+		return nil, api.SendHttpRequestError(actionName, err)
 	}
 
 	// 解析响应体
 	eSignResponse, err = api.GetESignCommonResponse(response)
 	if err != nil {
-		return nil, errors.New(actionName + "解析e签宝响应体失败:" + err.Error())
+		return nil, api.ParseESignResponseError(actionName, err)
 	}
 	return eSignResponse, nil
+}
+
+func (s *TemplateService) GetAndParseESignTemplateDetailData(eSignTemplateId string, queryComponents bool, writeLog bool) (eSignTemplateData *types.GetESignTemplateDetailResponse, err error) {
+	// 获取e签宝模板详情
+	eSignResponse, err := s.GetESignTemplateDetail(eSignTemplateId, queryComponents, writeLog)
+	if err != nil {
+		return nil, err
+	}
+
+	// 判断e签宝返回的code是否成功
+	if eSignResponse.Code != api.ESignResponseCodeSuccess {
+		return nil, api.GetESignResponseError(eSignResponse)
+	}
+
+	// 解析模板数据到结构体
+	err = utils.JsonUnmarshalToStruct(eSignResponse.Data, &eSignTemplateData)
+	if err != nil {
+		return nil, err
+	}
+	return eSignTemplateData, nil
 }
 
 // CreateByTemplate 通过模板创建文件
@@ -81,17 +100,17 @@ func (s *TemplateService) CreateByTemplate(eSignTemplateDocFileId, eSignTemplate
 	}
 	requestHeaders, err := s.authService.RequestESignHeaders()
 	if err != nil {
-		return nil, errors.New(actionName + "构建请求e签宝的headers失败:" + err.Error())
+		return nil, api.BuildRequestESignHeadersError(actionName, err)
 	}
 	response, err := utils.SendHttpPostRequest(requestUrl, requestBody, requestHeaders, writeLog)
 	if err != nil {
-		return nil, errors.New(actionName + "发送http请求失败:" + err.Error())
+		return nil, api.SendHttpRequestError(actionName, err)
 	}
 
 	// 解析响应体
 	eSignResponse, err = api.GetESignCommonResponse(response)
 	if err != nil {
-		return nil, errors.New(actionName + "解析e签宝响应体失败:" + err.Error())
+		return nil, api.ParseESignResponseError(actionName, err)
 	}
 	return eSignResponse, nil
 }

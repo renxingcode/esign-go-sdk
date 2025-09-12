@@ -46,7 +46,7 @@ func (s *AuthService) GetESignToken(useCache bool) (token string, err error) {
 			return "", err
 		}
 		if token != "" {
-			logx.Infof("从缓存获取token成功")
+			//logx.Infof("从缓存获取token成功")
 			return token, nil
 		}
 	}
@@ -69,6 +69,8 @@ func (s *AuthService) GetESignToken(useCache bool) (token string, err error) {
 	return token, nil
 }
 
+// GetESignTokenFromESignServer 从e签宝服务器获取token
+// https://open.esign.cn/doc/opendoc/identity_service/szr5s9
 func (s *AuthService) GetESignTokenFromESignServer() (eSignTokenResp *types.GetESignTokenResponse, err error) {
 	// 发起HTTP请求,获取e签宝的token
 	requestUrl := s.config.BaseURL + api.GetESignTokenPath
