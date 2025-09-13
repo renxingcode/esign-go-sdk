@@ -1,6 +1,7 @@
 package account_api
 
 import (
+	"fmt"
 	"github.com/renxingcode/esign-go-sdk/api"
 	"github.com/renxingcode/esign-go-sdk/api/auth_api"
 	"github.com/renxingcode/esign-go-sdk/config"
@@ -98,7 +99,12 @@ func (s *AccountService) CreateESignPersonsIdentity(name, mobile, thirdPartyUser
 	if err != nil {
 		return nil, api.ParseESignResponseError(actionName, err)
 	}
-	if eSignResponse.Code != api.ESignResponseCodeSuccess {
+
+	// 个人认证信息不存在，创建个人认证信息并返回;如果存在,忽略错误提示,直接返回accountId
+	//if eSignResponse.Code != api.ESignResponseCodeSuccess {
+	//	return nil, api.GetESignResponseError(eSignResponse)
+	//}
+	if eSignResponse.Data == nil {
 		return nil, api.GetESignResponseError(eSignResponse)
 	}
 
@@ -131,6 +137,7 @@ func (s *AccountService) GetOrCreateESignSignerAccountId(name, mobile string, wr
 
 	// 个人认证信息不存在，创建个人认证信息并返回;如果存在,忽略错误提示,直接返回accountId
 	createESignPersonsIdentityData, err := s.CreateESignPersonsIdentity(name, mobile, psnAccount, writeLog)
+	fmt.Println("createESignPersonsIdentityData:", utils.JsonMarshalIndent(createESignPersonsIdentityData))
 	if createESignPersonsIdentityData != nil && createESignPersonsIdentityData.AccountId != "" {
 		return createESignPersonsIdentityData.AccountId, nil
 	}

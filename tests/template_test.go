@@ -93,6 +93,7 @@ func TestCreateByTemplate(t *testing.T) {
 
 	// 6.将e签宝返回的downloadUrl上传到自己服务器或OSS todo
 	createByTemplateResponseData.DownloadOssUrl = "todo_your_server_file_url"
+	createByTemplateResponseData.TemplateId = eSignTemplateId
 
 	utils.LogxInfow(createByTemplateResponseData, "createByTemplateResponseData")
 }

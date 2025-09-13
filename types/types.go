@@ -141,6 +141,7 @@ type CreateESignFileByTemplateRequest struct {
 	SimpleFormFields    map[string]string `json:"simpleFormFields"` //todo 可以根据情况改为结构体,不影响整体流程
 }
 type CreateESignFileByTemplateResponse struct {
+	TemplateId     string `json:"templateId"`     // 模板ID
 	FileId         string `json:"fileId"`         //文件id
 	FileName       string `json:"fileName"`       //文件名称
 	DownloadUrl    string `json:"downloadUrl"`    //文件下载url

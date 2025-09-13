@@ -49,10 +49,10 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 	//数据校验
 	signerName := requestESignCreateFlowData.SignerName
 	signerPhone := requestESignCreateFlowData.SignerPhone
-	companySealID := requestESignCreateFlowData.CompanySealID
+	//companySealID := requestESignCreateFlowData.CompanySealID
 	contractFiles := requestESignCreateFlowData.ContractFiles
-	if signerName == "" || signerPhone == "" || companySealID == "" || len(contractFiles) == 0 {
-		return nil, errors.New(actionName + "ESignCreateFlowOneStep传入的参数错误:签署人姓名、签署人手机号、公司印章ID、合同文件列表都不能为空")
+	if signerName == "" || signerPhone == "" || len(contractFiles) == 0 {
+		return nil, errors.New(actionName + "ESignCreateFlowOneStep传入的参数错误:签署人姓名、签署人手机号、合同文件列表都不能为空")
 	}
 
 	//Docs
@@ -61,9 +61,12 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 	signersList := make([]types.ESignCreateFlowSigner, 0)
 	//公共变量
 	thirdOrderNo := "your_own_defined_third_order_no" //改为你自己业务需要的内容
-	signerAccountId, err := s.accountService.GetOrCreateESignSignerAccountId(signerName, signerPhone, writeLog)
+	signerAccountId, err := s.accountService.GetOrCreateESignSignerAccountId(signerName, signerPhone, false)
 	if err != nil {
 		return nil, err
+	}
+	if signerAccountId == "" {
+		return nil, errors.New("签署人账号获取失败")
 	}
 
 	for _, contractFile := range contractFiles {
@@ -92,7 +95,7 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 		signFieldsUserList := make([]types.EsignSignField, 0)
 		for _, Participants := range eSignTemplateData.Participants {
 			for _, Components := range Participants.Components {
-				if Components.ComponentType == 6 {
+				if Components.ComponentType == 6 { //签署区
 					//公司盖章区域company+_拼接
 					componentKeySlice := strings.Split(Components.ComponentKey, "_")
 					if len(componentKeySlice) == 0 {
@@ -104,19 +107,18 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 						platformSign = true
 						signFieldsItem := types.EsignSignField{
 							AutoExecute:        true,
-							ActorIndentityType: 2,
+							ActorIndentityType: 2, //机构签约类别，当签约主体为机构时必传：2-机构盖章
 							FileID:             fileId,
-							SealID:             companySealID, //公司印章ID,如果产生阻塞,注释这行就可以了,e签宝就回用默认的公司盖章ID处理
+							//SealID:             requestESignCreateFlowData.CompanySealID, //公司印章ID,如果注释这行,e签宝就回用默认的公司盖章ID处理
 							PosBean: types.EsignPosBean{
 								PosPage: Components.ComponentPosition.ComponentPageNum,
 								PosX:    Components.ComponentPosition.ComponentPositionX,
 								PosY:    Components.ComponentPosition.ComponentPositionY,
 							},
-							SignDateBeanType: 1,
+							SignDateBeanType: 1, //是否需要添加签署日期，0-禁止 1-必须 2-不限制，默认0
 						}
 						signFieldsList = append(signFieldsList, signFieldsItem)
 						signFieldsCompanyList = append(signFieldsCompanyList, signFieldsItem)
-
 					} else { //个人签署
 						platformSign = false
 						signFieldsItem := types.EsignSignField{
@@ -127,7 +129,7 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 								PosX:    Components.ComponentPosition.ComponentPositionX,
 								PosY:    Components.ComponentPosition.ComponentPositionY,
 							},
-							SignDateBeanType: 2,
+							SignDateBeanType: 2, //是否需要添加签署日期，0-禁止 1-必须 2-不限制，默认0
 						}
 						signFieldsList = append(signFieldsList, signFieldsItem)
 						signFieldsUserList = append(signFieldsUserList, signFieldsItem)
@@ -173,7 +175,7 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 	}
 
 	// 发起HTTP请求
-	requestUrl := s.config.BaseURL + api.CreatePersonsIdentity
+	requestUrl := s.config.BaseURL + api.CreateFlowOneStep
 	requestHeaders, err := s.authService.RequestESignHeaders()
 	if err != nil {
 		return nil, api.BuildRequestESignHeadersError(actionName, err)
