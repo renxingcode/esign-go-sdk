@@ -11,6 +11,7 @@ import (
 	"github.com/renxingcode/esign-go-sdk/types"
 	"github.com/renxingcode/esign-go-sdk/utils"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -191,5 +192,79 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 		return nil, api.ParseESignResponseError(actionName, err)
 	}
 
+	return eSignResponse, nil
+}
+
+// GetESignExecuteUrlByFlowId 查询签署链接
+// e签宝官方接口文档 https://open.esign.cn/doc/opendoc/saas_api/fh3gh1_dwz08n
+func (s *SignService) GetESignExecuteUrlByFlowId(flowId, signerName, signerPhone string, writeLog bool) (eSignResponse *types.ESignCommonResponse, err error) {
+	actionName := "查询签署链接:"
+
+	//数据校验
+	if flowId == "" || signerName == "" || signerPhone == "" {
+		return nil, errors.New(actionName + "传入的参数错误:flowId、签署人姓名、签署人手机号都不能为空")
+	}
+
+	//获取签署人账号
+	signerAccountId, err := s.accountService.GetOrCreateESignSignerAccountId(signerName, signerPhone, false)
+	if err != nil {
+		return nil, err
+	}
+	if signerAccountId == "" {
+		return nil, errors.New("签署人账号获取失败")
+	}
+
+	// 构建查询参数
+	params := url.Values{}
+	params.Add("accountId", signerAccountId)
+
+	// 发起HTTP请求
+	//将 api.GetESignExecuteUrlByFlowId 中的 {FLOW_ID} 替换为 flowId
+	requestPath := strings.Replace(api.GetESignExecuteUrlByFlowId, "{FLOW_ID}", flowId, 1)
+	requestUrl := s.config.BaseURL + requestPath + "?" + params.Encode()
+	requestHeaders, err := s.authService.RequestESignHeaders()
+	if err != nil {
+		return nil, api.BuildRequestESignHeadersError(actionName, err)
+	}
+	response, err := utils.SendHttpGetRequest(requestUrl, requestHeaders, writeLog)
+	if err != nil {
+		return nil, api.SendHttpRequestError(actionName, err)
+	}
+
+	// 解析响应体
+	eSignResponse, err = api.GetESignCommonResponse(response)
+	if err != nil {
+		return nil, api.ParseESignResponseError(actionName, err)
+	}
+	return eSignResponse, nil
+}
+
+// ESignFlowRevoke PUT 撤回签署流程:撤销签署流程，撤销后流程中止，所有签署短信打开后无效。
+// 文档地址: https://open.esign.cn/doc/opendoc/saas_api/hv1dii_uqoamg
+func (s *SignService) ESignFlowRevoke(flowId string, writeLog bool) (eSignResponse *types.ESignCommonResponse, err error) {
+	actionName := "撤回签署流程:"
+
+	//数据校验
+	if flowId == "" {
+		return nil, errors.New(actionName + "传入的参数错误:flowId不能为空")
+	}
+
+	// 发起HTTP请求,这里需要PUT请求
+	requestPath := strings.Replace(api.ESignFlowRevokePath, "{FLOW_ID}", flowId, 1) //替换 {FLOW_ID}
+	requestUrl := s.config.BaseURL + requestPath
+	requestHeaders, err := s.authService.RequestESignHeaders()
+	if err != nil {
+		return nil, api.BuildRequestESignHeadersError(actionName, err)
+	}
+	response, err := utils.SendHttpPutRequest(requestUrl, requestHeaders, writeLog)
+	if err != nil {
+		return nil, api.SendHttpRequestError(actionName, err)
+	}
+
+	// 解析响应体
+	eSignResponse, err = api.GetESignCommonResponse(response)
+	if err != nil {
+		return nil, api.ParseESignResponseError(actionName, err)
+	}
 	return eSignResponse, nil
 }

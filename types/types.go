@@ -227,12 +227,14 @@ type EsignSignDateBean struct {
 
 // 创建合同签署数据的返回结构
 type ESignCreateFlowResponseData struct {
-	ContractSignDataId int64  `json:"contract_sign_data_id"`
-	BusinessTypeID     int64  `json:"business_type_id"`
-	BusinessDataID     string `json:"business_data_id"`
-	ESignFlowId        string `json:"e_sign_flow_id"`
-	ESignUrl           string `json:"e_sign_url"`
-	ESignShortUrl      string `json:"e_sign_short_url"`
+	ESignFlowId string `json:"flowId"`
+}
+
+// 查询签署链接的返回结构
+type GetExecuteUrlResponseData struct {
+	ESignFlowId   string `json:"flowId"`
+	ESignUrl      string `json:"url"`
+	ESignShortUrl string `json:"shortUrl"`
 }
 
 // 查询个人认证信息的返回结构

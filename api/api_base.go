@@ -21,6 +21,8 @@ const (
 	GetPersonsIdentityInfo     = "/v3/persons/identity-info"             //查询个人认证信息 https://open.esign.cn/doc/opendoc/auth3/vssvtu
 	CreatePersonsIdentity      = "/v1/accounts/createByThirdPartyUserId" //创建个人签署账号 https://open.esign.cn/doc/opendoc/paas_api/ox6nog
 	CreateFlowOneStep          = "/api/v2/signflows/createFlowOneStep"   //一步发起签署 https://open.esign.cn/doc/opendoc/paas_api/pwd6l4
+	GetESignExecuteUrlByFlowId = "/v1/signflows/{FLOW_ID}/executeUrl"    //查询签署链接 https://open.esign.cn/doc/opendoc/saas_api/fh3gh1_dwz08n
+	ESignFlowRevokePath        = "/v1/signflows/{FLOW_ID}/revoke"        //撤回签署流程 https://open.esign.cn/doc/opendoc/saas_api/hv1dii_uqoamg
 )
 
 // e签宝返回的code
