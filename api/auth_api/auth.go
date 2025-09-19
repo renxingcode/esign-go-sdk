@@ -102,6 +102,12 @@ func (s *AuthService) GetESignTokenFromESignServer() (eSignTokenResp *types.GetE
 	if err != nil {
 		return nil, err
 	}
+	if responseDataStruct.Token == "" {
+		return nil, errors.New("e签宝返回的Token为空")
+	}
+	if responseDataStruct.ExpiresIn == "" {
+		return nil, errors.New("e签宝返回的ExpiresIn为空") //此处可以改为自定义的过期时间
+	}
 	return &responseDataStruct, nil
 }
 

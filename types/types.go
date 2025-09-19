@@ -237,6 +237,16 @@ type GetExecuteUrlResponseData struct {
 	ESignShortUrl string `json:"shortUrl"`
 }
 
+// 查询签署完成后的文档链接的返回结构
+type GetDocumentsUrlResponseData struct {
+	Docs []GetDocumentsUrlResponseDataDocs `json:"docs"`
+}
+type GetDocumentsUrlResponseDataDocs struct {
+	FileId   string `json:"fileId"`   //签署完成后的文件ID
+	FileName string `json:"fileName"` //签署完成后的文件名
+	FileUrl  string `json:"fileUrl"`  //签署完成后的文件下载链接
+}
+
 // 查询个人认证信息的返回结构
 type PersonsIdentityData struct {
 	AuthorizeUserInfo bool            `json:"authorizeUserInfo"`

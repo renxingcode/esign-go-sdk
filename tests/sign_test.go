@@ -101,4 +101,38 @@ func TestESignFlowRevoke(t *testing.T) {
 		t.Errorf("Failed to revoke flow: %v", err)
 	}
 	t.Logf("revokeResponse: %v", utils.JsonMarshalNoEscape(revokeResponse))
+	//{"code":1437111,"message":"非开启状态不允许撤回流程","data":null} todo 和e签宝技术人员沟通
+}
+
+// TestESignGetDocumentsUrlByFlowId 查询e签宝签署完成后的文档链接 | go test tests/sign_test.go -v -run TestESignGetDocumentsUrlByFlowId
+func TestESignGetDocumentsUrlByFlowId(t *testing.T) {
+	testClient, err := Initialize.NewTestClient()
+	if err != nil {
+		t.Errorf("创建测试客户端失败: %v\n", err)
+		return
+	}
+	client := esign.NewClient(testClient.Conf)
+
+	//设置请求参数
+	flowId := "531daae5b81f47b494d82f0e48603eb6" //TestESignCreateFlowOneStep 中获取到的flowId
+	eSignDocumentsDocs, err := client.Sign.GetESignDocumentsUrlByFlowId(flowId, true)
+	if err != nil {
+		t.Errorf("Failed to get documents url: %v", err)
+	}
+
+	//todo 对 eSignDocumentsDocs 循环处理,分别上传fileUrl到你自己的OSS服务器
+	type GetDocumentsUrlResponseDataDocsForMe struct {
+		types.GetDocumentsUrlResponseDataDocs
+		OssFileUrl string `json:"ossFileUrl"`
+	}
+
+	documentsUrlResponseDataDocsForMe := make([]GetDocumentsUrlResponseDataDocsForMe, 0, len(eSignDocumentsDocs))
+	for _, doc := range eSignDocumentsDocs {
+		docForMe := GetDocumentsUrlResponseDataDocsForMe{
+			GetDocumentsUrlResponseDataDocs: doc,
+			OssFileUrl:                      "todo-upload-to-your-oss-server",
+		}
+		documentsUrlResponseDataDocsForMe = append(documentsUrlResponseDataDocsForMe, docForMe)
+	}
+	t.Logf("documentsUrlResponseDataDocsForMe: %v", utils.JsonMarshalNoEscape(documentsUrlResponseDataDocsForMe))
 }

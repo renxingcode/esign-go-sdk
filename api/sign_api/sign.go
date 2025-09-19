@@ -42,7 +42,7 @@ func NewSignService(cfg *config.Config, authSvc *auth_api.AuthService) *SignServ
 	}
 }
 
-// ESignCreateFlowOneStep 请求e签宝发起签署流程
+// ESignCreateFlowOneStep 请求e签宝发起签署流程,此流程为e签宝自动给签署人发送短信
 // e签宝官方接口文档 https://open.esign.cn/doc/opendoc/paas_api/pwd6l4
 func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.ESignCreateFlowRequestData, writeLog bool) (eSignResponse *types.ESignCommonResponse, err error) {
 	actionName := "一步发起签署:"
@@ -267,4 +267,44 @@ func (s *SignService) ESignFlowRevoke(flowId string, writeLog bool) (eSignRespon
 		return nil, api.ParseESignResponseError(actionName, err)
 	}
 	return eSignResponse, nil
+}
+
+// GetESignDocumentsUrlByFlowId 获取签署完成后的文档链接
+// 文档地址: https://open.esign.cn/doc/opendoc/saas_api/oyqsoq_zknh6g
+func (s *SignService) GetESignDocumentsUrlByFlowId(flowId string, writeLog bool) (eSignDocumentsDocs []types.GetDocumentsUrlResponseDataDocs, err error) {
+	actionName := "查询签署完成后的文档链接:"
+
+	//数据校验
+	if flowId == "" {
+		return nil, errors.New(actionName + "传入的参数错误:flowId不能为空")
+	}
+
+	// 发起HTTP请求
+	requestPath := strings.Replace(api.GetESignDocumentsUrlByFlowId, "{FLOW_ID}", flowId, 1) //替换 {FLOW_ID}
+	requestUrl := s.config.BaseURL + requestPath
+	requestHeaders, err := s.authService.RequestESignHeaders()
+	if err != nil {
+		return nil, api.BuildRequestESignHeadersError(actionName, err)
+	}
+	response, err := utils.SendHttpGetRequest(requestUrl, requestHeaders, writeLog)
+	if err != nil {
+		return nil, api.SendHttpRequestError(actionName, err)
+	}
+
+	// 解析响应体
+	eSignResponse, err := api.GetESignCommonResponse(response)
+	if err != nil {
+		return nil, api.ParseESignResponseError(actionName, err)
+	}
+	if eSignResponse.Code != api.ESignResponseCodeSuccess {
+		return nil, api.GetESignResponseError(eSignResponse)
+	}
+
+	// 解析Data结构
+	documentsUrlResponseData := &types.GetDocumentsUrlResponseData{}
+	err = utils.JsonUnmarshalToStruct(eSignResponse.Data, &documentsUrlResponseData)
+	if err != nil {
+		return nil, api.ParseESignResponseDataError(actionName, err)
+	}
+	return documentsUrlResponseData.Docs, nil
 }
