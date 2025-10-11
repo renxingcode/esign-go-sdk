@@ -2,13 +2,13 @@ package tests
 
 import (
 	"github.com/renxingcode/esign-go-sdk"
-	"github.com/renxingcode/esign-go-sdk/Initialize"
+	"github.com/renxingcode/esign-go-sdk/initialize"
 	"testing"
 )
 
 // TestGetToken 测试获取Token | go test tests/auth_test.go -v -run TestGetToken
 func TestGetToken(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return

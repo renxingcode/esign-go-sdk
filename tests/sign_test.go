@@ -2,7 +2,7 @@ package tests
 
 import (
 	"github.com/renxingcode/esign-go-sdk"
-	"github.com/renxingcode/esign-go-sdk/Initialize"
+	"github.com/renxingcode/esign-go-sdk/initialize"
 	"github.com/renxingcode/esign-go-sdk/types"
 	"github.com/renxingcode/esign-go-sdk/utils"
 	"testing"
@@ -13,7 +13,7 @@ var signerPhone = "13212345678"
 
 // TestESignCreateFlowOneStep 请求e签宝发起签署流程 | go test tests/sign_test.go -v -run TestESignCreateFlowOneStep
 func TestESignCreateFlowOneStep(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return
@@ -56,7 +56,7 @@ func TestESignCreateFlowOneStep(t *testing.T) {
 
 // TestESignGetExecuteUrlByFlowId 请求e签宝查询签署链接 | go test tests/sign_test.go -v -run TestESignGetExecuteUrlByFlowId
 func TestESignGetExecuteUrlByFlowId(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return
@@ -87,7 +87,7 @@ func TestESignGetExecuteUrlByFlowId(t *testing.T) {
 
 // TestESignFlowRevoke 请求e签宝撤回签署流程 | go test tests/sign_test.go -v -run TestESignFlowRevoke
 func TestESignFlowRevoke(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return
@@ -106,7 +106,7 @@ func TestESignFlowRevoke(t *testing.T) {
 
 // TestESignGetDocumentsUrlByFlowId 查询e签宝签署完成后的文档链接 | go test tests/sign_test.go -v -run TestESignGetDocumentsUrlByFlowId
 func TestESignGetDocumentsUrlByFlowId(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return

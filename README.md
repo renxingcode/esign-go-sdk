@@ -18,7 +18,7 @@
 ├── config/            # 配置相关代码
 │   ├── esign_config.go  # e签宝配置
 │   └── redis_config.go  # Redis缓存配置
-├── Initialize/        # 初始化工具
+├── initialize/        # 初始化工具
 │   └── tests_init.go   # 测试环境初始化
 ├── types/             # 数据结构定义
 │   └── types.go        # 所有API请求/响应结构体

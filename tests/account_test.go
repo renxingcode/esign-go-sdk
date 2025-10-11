@@ -2,14 +2,14 @@ package tests
 
 import (
 	"github.com/renxingcode/esign-go-sdk"
-	"github.com/renxingcode/esign-go-sdk/Initialize"
+	"github.com/renxingcode/esign-go-sdk/initialize"
 	"github.com/renxingcode/esign-go-sdk/utils"
 	"testing"
 )
 
 // TestGetESignPersonsIdentityInfo 测试查询个人认证信息 | go test tests/account_test.go -v -run TestGetESignPersonsIdentityInfo
 func TestGetESignPersonsIdentityInfo(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return
@@ -26,14 +26,14 @@ func TestGetESignPersonsIdentityInfo(t *testing.T) {
 
 // TestCreateESignPersonsIdentity 测试创建个人认证信息 | go test tests/account_test.go -v -run TestCreateESignPersonsIdentity
 func TestCreateESignPersonsIdentity(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return
 	}
 	client := esign.NewClient(testClient.Conf)
 
-	name := "张小雨"              //姓名
+	name := "张小雨"           //姓名
 	mobile := "13945618971"    //手机号
 	thirdPartyUserId := mobile //第三方用户ID,可以和手机号相同
 	createResp, err := client.Account.CreateESignPersonsIdentity(name, mobile, thirdPartyUserId, true)

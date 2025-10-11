@@ -2,8 +2,8 @@ package tests
 
 import (
 	"github.com/renxingcode/esign-go-sdk"
-	"github.com/renxingcode/esign-go-sdk/Initialize"
 	"github.com/renxingcode/esign-go-sdk/api"
+	"github.com/renxingcode/esign-go-sdk/initialize"
 	"github.com/renxingcode/esign-go-sdk/types"
 	"github.com/renxingcode/esign-go-sdk/utils"
 	"testing"
@@ -11,7 +11,7 @@ import (
 
 // TestGetESignTemplateDetail 测试获取流程模版详情 | go test tests/template_test.go -v -run TestGetESignTemplateDetail
 func TestGetESignTemplateDetail(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return
@@ -30,7 +30,7 @@ func TestGetESignTemplateDetail(t *testing.T) {
 
 // TestCreateByTemplate 测试通过模板创建文件 | go test tests/template_test.go -v -run TestCreateByTemplate
 func TestCreateByTemplate(t *testing.T) {
-	testClient, err := Initialize.NewTestClient()
+	testClient, err := initialize.NewTestClient()
 	if err != nil {
 		t.Errorf("创建测试客户端失败: %v\n", err)
 		return
