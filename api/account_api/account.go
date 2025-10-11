@@ -13,6 +13,8 @@ import (
 // AccountServiceInterface 账户服务接口
 type AccountServiceInterface interface {
 	GetESignPersonsIdentityInfo(psnAccount string, writeLog bool) (eSignPersonsIdentityData *types.PersonsIdentityData, err error)
+	CreateESignPersonsIdentity(name, mobile, thirdPartyUserId string, writeLog bool) (eSignPersonsIdentityData *types.CreateESignPersonsIdentityResponse, err error)
+	GetOrCreateESignSignerAccountId(name, mobile string, writeLog bool) (accountId string, err error)
 }
 
 var _ AccountServiceInterface = (*AccountService)(nil)

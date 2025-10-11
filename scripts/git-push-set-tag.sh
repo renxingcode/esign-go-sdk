@@ -1,4 +1,5 @@
-# 运行方式: sh git-push.sh 提交代码的备注信息
+# 说明: Git提交当前分支并设置tag
+# 运行方式: sh git-push-set-tag.sh 提交代码的备注信息 tag名称
 
 if [ ! -n "$1" ] ;then
     # mark="修改"

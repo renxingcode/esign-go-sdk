@@ -18,6 +18,9 @@ import (
 // SignServiceInterface 流程服务接口
 type SignServiceInterface interface {
 	ESignCreateFlowOneStep(requestESignCreateFlowData *types.ESignCreateFlowRequestData, writeLog bool) (eSignResponse *types.ESignCommonResponse, err error)
+	GetESignExecuteUrlByFlowId(flowId, signerName, signerPhone string, writeLog bool) (eSignResponse *types.ESignCommonResponse, err error)
+	ESignFlowRevoke(flowId string, writeLog bool) (eSignResponse *types.ESignCommonResponse, err error)
+	GetESignDocumentsUrlByFlowId(flowId string, writeLog bool) (eSignDocumentsDocs []types.GetDocumentsUrlResponseDataDocs, err error)
 }
 
 var _ SignServiceInterface = (*SignService)(nil)

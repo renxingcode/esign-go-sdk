@@ -13,15 +13,16 @@ import (
 	"time"
 )
 
-// AuthServiceInterface 认证服务应实现的接口
 type AuthServiceInterface interface {
 	GetESignToken(useCache bool) (token string, err error)
+	GetESignTokenFromESignServer() (eSignTokenResp *types.GetESignTokenResponse, err error)
+	GetESignTokenFromCacheData() (token string, err error)
+	SetESignTokenToCacheData(token string, eSignExpiresIn string) error
 }
 
-// 编译时检查 Service 是否实现了 AuthServiceInterface 接口
 var _ AuthServiceInterface = (*AuthService)(nil)
 
-// AuthService 认证服务, 它应该被嵌入到主 Client 中，并且负责 token 的管理（获取、刷新、缓存）
+// AuthService 认证服务, 负责 token 的管理（获取、刷新、缓存）
 type AuthService struct {
 	config    *config.Config
 	client    *http.Client // 可以接收一个自定义的 http.Client
