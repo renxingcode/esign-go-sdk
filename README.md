@@ -1,14 +1,16 @@
 # Go语言的e签宝SDK
 
-使用Go语言对接e签宝签署合同的SDK
+使用Go语言对接e签宝签署合同的SDK，完整文章描述移步这里: https://blog.csdn.net/rxbook/article/details/153199993
 
 ## 项目简介
 
-这是一个基于Go语言开发的e签宝SDK，用于对接e签宝电子合同签署平台API，实现电子合同的创建、签署、查询等功能。该SDK采用模块化设计，结构清晰，易于集成和扩展。
+这是一个基于Go语言开发的e签宝SDK，用于对接e签宝电子合同签署平台API，实现电子合同的创建、签署、查询等功能。该SDK采用模块化设计，结构清晰，易于集成和扩展。同时，**本项目也可以作为其它SDK的框架模板，稍作改动就可以用于其它业务。**
+本项目提供了完整的API封装，包括认证管理、模板处理、账户管理、签署流程等功能。
 
 ## 目录结构
 
 ```text
+esign-go-sdk/
 ├── api/               # API服务实现
 │   ├── account_api/   # 账户相关API
 │   ├── auth_api/      # 认证相关API
@@ -19,11 +21,11 @@
 │   ├── esign_config.go  # e签宝配置
 │   └── redis_config.go  # Redis缓存配置
 ├── initialize/        # 初始化工具
-│   └── tests_init.go   # 测试环境初始化
+│   └── tests_init.go  # 测试环境初始化
 ├── types/             # 数据结构定义
-│   └── types.go        # 所有API请求/响应结构体
+│   └── types.go       # 所有API请求/响应结构体
 ├── utils/             # 通用工具函数
-│   └── utils.go        # JSON处理、日志等工具函数
+│   └── utils.go       # JSON处理、日志等工具函数
 ├── tests/             # 测试用例
 ├── .env               # 环境变量配置文件
 ├── .env.demo          # 环境变量配置示例
@@ -43,7 +45,7 @@ go get github.com/renxingcode/esign-go-sdk
 
 ### 1. 配置环境变量
 
-复制.env.demo文件为.env，并填写您的e签宝账号信息：
+复制 `.env.demo` 文件为 `.env`，并填写您的e签宝账号信息：
 
 ```bash
 cp .env.demo .env
@@ -65,21 +67,21 @@ IS_WRITE_LOG=true/false（是否记录日志）
 
 ```go
 import (
-"github.com/renxingcode/esign-go-sdk"
-"github.com/renxingcode/esign-go-sdk/config"
+    "github.com/renxingcode/esign-go-sdk"
+    "github.com/renxingcode/esign-go-sdk/config"
 )
 
 // 方法一：通过环境变量初始化
 conf, err := config.LoadConfigFromEnv()
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 client := esign.NewClient(conf)
 
 // 方法二：直接传入配置参数
 conf, err := config.NewConfig("您的AppID", "您的AppSecret", "e签宝API地址", "您的机构账号ID", "授权类型", "是否记录日志")
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 client := esign.NewClient(conf)
 ```
@@ -94,7 +96,7 @@ SDK会自动管理e签宝的访问令牌，包括获取、缓存和刷新：
 // 获取访问令牌（通常不需要手动调用，SDK内部会自动处理）
 token, err := client.Auth.GetESignToken(true) // true表示使用缓存
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 ```
 
@@ -104,17 +106,17 @@ if err != nil {
 // 获取模板详情
 templateDetail, err := client.Template.GetESignTemplateDetail("模板ID", true, true)
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 
 // 通过模板创建文件
 simpleFormFields := map[string]string{
-"field1": "value1",
-"field2": "value2",
+    "field1": "value1",
+    "field2": "value2",
 }
 fileResponse, err := client.Template.CreateByTemplate("模板ID", "文件名称", simpleFormFields, true)
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 ```
 
@@ -124,7 +126,7 @@ if err != nil {
 // 查询个人认证信息
 accountInfo, err := client.Account.GetESignPersonsIdentityInfo("手机号或邮箱", true)
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 ```
 
@@ -136,33 +138,33 @@ import "github.com/renxingcode/esign-go-sdk/types"
 // 一步发起签署流程
 contractFiles := make([]types.ESignCreateFlowFiles, 0)
 contractFiles = append(contractFiles, types.ESignCreateFlowFiles{
-TemplateId: "模板ID",
-EFileId:    "文件ID",
+    TemplateId: "模板ID",
+    EFileId:    "文件ID",
 })
 
 requestData := &types.ESignCreateFlowRequestData{
-SignerName:    "签署人姓名",
-SignerPhone:   "签署人手机号",
-CompanySealID: "公司印章ID（可选）",
-ContractFiles: contractFiles,
+    SignerName:    "签署人姓名",
+    SignerPhone:   "签署人手机号",
+    CompanySealID: "公司印章ID（可选）",
+    ContractFiles: contractFiles,
 }
 
 flowResponse, err := client.Sign.ESignCreateFlowOneStep(requestData, true)
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 
 // 查询签署链接
 flowId := "签署流程ID"
 executeUrlResponse, err := client.Sign.GetESignExecuteUrlByFlowId(flowId, "签署人姓名", "签署人手机号", true)
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 
 // 撤回签署流程
 revokeResponse, err := client.Sign.ESignFlowRevoke(flowId, true)
 if err != nil {
-// 处理错误
+    // 处理错误
 }
 ```
 
@@ -205,4 +207,6 @@ MIT
 
 ## 联系方式
 
-如有问题或建议，请联系项目维护者：renxingcode
+如有问题或建议，请联系项目维护者：renxingcode;
+
+完整文章描述移步这里: https://blog.csdn.net/rxbook/article/details/153199993

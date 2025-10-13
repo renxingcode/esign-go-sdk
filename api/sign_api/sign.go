@@ -70,7 +70,7 @@ func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.E
 		return nil, err
 	}
 	if signerAccountId == "" {
-		return nil, errors.New("签署人账号获取失败")
+		return nil, errors.New(actionName + "签署人账号获取失败")
 	}
 
 	for _, contractFile := range contractFiles {
@@ -214,7 +214,7 @@ func (s *SignService) GetESignExecuteUrlByFlowId(flowId, signerName, signerPhone
 		return nil, err
 	}
 	if signerAccountId == "" {
-		return nil, errors.New("签署人账号获取失败")
+		return nil, errors.New(actionName + "签署人账号获取失败")
 	}
 
 	// 构建查询参数
