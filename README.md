@@ -61,6 +61,10 @@ ESIGN_BASE_URL=e签宝API地址（如：https://smlopenapi.esign.cn）
 ESIGN_ORG_ID=您的机构账号ID
 ESIGN_GRANT_TYPE=授权类型（通常为client_credentials）
 IS_WRITE_LOG=true/false（是否记录日志）
+
+## 签署用到的测试数据放到一个JSON里面
+# signerName: 签署人姓名; signerPhone: 签署人手机号; signerAccountId: 签署人账号ID; eSignTemplateId: e签宝模板ID
+SIGNER_TEST_DATA={"signerName":"张三", "signerPhone":"13000000000","signerAccountId":"4223fc5xxxxxx","eSignTemplateId":"213fdxxxxxx"}
 ```
 
 ### 2. 初始化SDK客户端
