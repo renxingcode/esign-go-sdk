@@ -2,6 +2,7 @@ package initialize
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/renxingcode/esign-go-sdk/config"
 	"log"
@@ -33,7 +34,14 @@ func NewTestClient() (*TestClient, error) {
 		log.Fatal("ESIGN_APP_ID, ESIGN_APP_SECRET, ESIGN_BASE_URL, ESIGN_ORG_ID and ESIGN_GRANT_TYPE environment variables are required")
 	}
 
-	conf, err := config.NewConfig(appID, appSecret, baseURL, orgID, grantType, isWriteLog)
+	var signerTestData map[string]any
+	err = json.Unmarshal([]byte(os.Getenv("SIGNER_TEST_DATA")), &signerTestData)
+	if err != nil {
+		return nil, fmt.Errorf("解析SIGNER_TEST_DATA的JSON数据失败: %w\n", err)
+	}
+	//fmt.Println(signerTestData)
+
+	conf, err := config.NewConfig(appID, appSecret, baseURL, orgID, grantType, isWriteLog, signerTestData)
 	if err != nil {
 		return nil, fmt.Errorf("创建配置失败: %w\n", err)
 	}

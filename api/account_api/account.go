@@ -8,6 +8,7 @@ import (
 	"github.com/renxingcode/esign-go-sdk/utils"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // AccountServiceInterface 账户服务接口
@@ -105,6 +106,41 @@ func (s *AccountService) CreateESignPersonsIdentity(name, mobile, thirdPartyUser
 	//if eSignResponse.Code != api.ESignResponseCodeSuccess {
 	//	return nil, api.GetESignResponseError(eSignResponse)
 	//}
+	if eSignResponse.Data == nil {
+		return nil, api.GetESignResponseError(eSignResponse)
+	}
+
+	// 解析Data结构
+	err = utils.JsonUnmarshalToStruct(eSignResponse.Data, &eSignPersonsIdentityData)
+	if err != nil {
+		return nil, api.ParseESignResponseDataError(actionName, err)
+	}
+	return eSignPersonsIdentityData, nil
+}
+
+// UpdateESignPersonsIdentity 修改个人认证信息
+// e签宝官方接口文档 https://open.esign.cn/doc/opendoc/saas_api/tzi4kd_ma1d8m
+func (s *AccountService) UpdateESignPersonsIdentity(signerAccountId string, requestData map[string]string, writeLog bool) (eSignPersonsIdentityData *types.UpdateESignPersonsIdentityResponse, err error) {
+	actionName := "修改个人认证信息:"
+
+	// 发起HTTP请求
+	requestPath := strings.Replace(api.UpdatePersonsIdentity, "{ACCOUNT_ID}", signerAccountId, 1)
+	requestUrl := s.config.BaseURL + requestPath
+	requestHeaders, err := s.authService.RequestESignHeaders()
+	if err != nil {
+		return nil, api.BuildRequestESignHeadersError(actionName, err)
+	}
+	response, err := utils.SendHttpPutRequest(requestUrl, requestData, requestHeaders, writeLog)
+	if err != nil {
+		return nil, api.SendHttpRequestError(actionName, err)
+	}
+
+	// 解析响应体
+	eSignResponse, err := api.GetESignCommonResponse(response)
+	if err != nil {
+		return nil, api.ParseESignResponseError(actionName, err)
+	}
+
 	if eSignResponse.Data == nil {
 		return nil, api.GetESignResponseError(eSignResponse)
 	}

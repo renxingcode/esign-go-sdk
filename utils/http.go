@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+// todo 整合一下这里的三个方法
 // SendHttpGetRequest 发送GET请求
 func SendHttpGetRequest(requestUrl string, requestHeaders map[string]string, isWriteLog bool) (string, error) {
 	// 创建一个新的 GET 请求
@@ -53,9 +54,15 @@ func SendHttpGetRequest(requestUrl string, requestHeaders map[string]string, isW
 }
 
 // SendHttpPutRequest 发送PUT请求
-func SendHttpPutRequest(requestUrl string, requestHeaders map[string]string, isWriteLog bool) (string, error) {
-	// 创建一个新的 GET 请求
-	req, err := http.NewRequest("PUT", requestUrl, nil)
+func SendHttpPutRequest(requestUrl string, requestBody interface{}, requestHeaders map[string]string, isWriteLog bool) (string, error) {
+	// 将请求体转换为 JSON
+	bodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", errors.New("请求体转换为JSON失败:" + err.Error())
+	}
+
+	// 创建一个新的 PUT 请求
+	req, err := http.NewRequest("PUT", requestUrl, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return "", errors.New("创建PUT请求失败:" + err.Error())
 	}
@@ -87,6 +94,7 @@ func SendHttpPutRequest(requestUrl string, requestHeaders map[string]string, isW
 		logData := map[string]interface{}{
 			"requestUrl":       requestUrl,
 			"requestHeaders":   requestHeaders,
+			"requestBody":      requestBody,
 			"responseHttpCode": resp.StatusCode, //HTTP 状态码
 			"responseData":     respBodyStr,
 		}

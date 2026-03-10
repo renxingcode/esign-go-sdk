@@ -18,9 +18,9 @@ func TestGetESignTemplateDetail(t *testing.T) {
 	}
 	client := esign.NewClient(testClient.Conf)
 
-	eSignTemplateId := "213fd9a04b2549818e15871a65bdb41b" //流程模板ID
-	queryComponents := true                               //是否需要查询控件信息:true-是 false-否(默认false)
-	writeLog := false                                     //获取模板返回的数据量很大,因此可以根据情况考虑是否关闭写入日志
+	eSignTemplateId := testClient.Conf.MoreData["eSignTemplateId"].(string) //流程模板ID
+	queryComponents := true                                                 //是否需要查询控件信息:true-是 false-否(默认false)
+	writeLog := false                                                       //获取模板返回的数据量很大,因此可以根据情况考虑是否关闭写入日志
 	templateDetail, err := client.Template.GetESignTemplateDetail(eSignTemplateId, queryComponents, writeLog)
 	if err != nil {
 		t.Errorf("Failed to get template detail: %v", err)
@@ -38,9 +38,9 @@ func TestCreateByTemplate(t *testing.T) {
 	client := esign.NewClient(testClient.Conf)
 
 	// 1. 获取模板信息
-	eSignTemplateId := "213fd9a04b2549818e15871a65bdb41b" //流程模板ID
-	queryComponents := true                               //是否需要查询控件信息:true-是 false-否(默认false)
-	writeLog := false                                     //获取模板返回的数据量很大,因此可以根据情况考虑是否关闭写入日志
+	eSignTemplateId := testClient.Conf.MoreData["eSignTemplateId"].(string) //流程模板ID
+	queryComponents := true                                                 //是否需要查询控件信息:true-是 false-否(默认false)
+	writeLog := false                                                       //获取模板返回的数据量很大,因此可以根据情况考虑是否关闭写入日志
 	eSignResponseTemplateDetail, err := client.Template.GetESignTemplateDetail(eSignTemplateId, queryComponents, writeLog)
 	if err != nil {
 		t.Errorf("GetESignTemplateDetail error1: %v", err)
@@ -64,7 +64,7 @@ func TestCreateByTemplate(t *testing.T) {
 
 	// 4. 生成合同模板数据
 	eSignTemplateDocFileId := eSignTemplateData.Docs[0].FileId
-	eSignTemplateDocFileName := "rxESignGoSdkDemo-" + utils.GetCurrentTime() + "-" + eSignTemplateData.Docs[0].FileName //自定义生成后的模板文件名称 todo 改为你自己的格式
+	eSignTemplateDocFileName := "eSignDemo-" + utils.GetCurrentTime() + "-" + eSignTemplateData.Docs[0].FileName //自定义生成后的模板文件名称 todo 改为你自己的格式
 	eSignTemplateDocSimpleFormFields := make(map[string]string)
 	for _, field := range eSignTemplateData.Participants {
 		for _, component := range field.Components {

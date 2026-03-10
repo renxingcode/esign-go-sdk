@@ -283,3 +283,16 @@ type CreateESignPersonsIdentityRequest struct {
 type CreateESignPersonsIdentityResponse struct {
 	AccountId string `json:"accountId"`
 }
+
+// 修改个人认证信息的返回结构
+type UpdateESignPersonsIdentityResponse struct {
+	Mobile             string `json:"mobile"`
+	Email              string `json:"email"`
+	CardNo             string `json:"cardNo"`
+	Name               string `json:"name"`
+	AccountId          string `json:"accountId"`
+	IdType             string `json:"idType"`
+	IdNumber           string `json:"idNumber"`
+	ThirdPartyUserId   string `json:"thirdPartyUserId"`
+	ThirdPartyUserType string `json:"thirdPartyUserType"`
+}

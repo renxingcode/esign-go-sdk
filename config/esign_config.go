@@ -16,6 +16,7 @@ type Config struct {
 	OrgId       string
 	GrantType   string
 	IsWriteLog  bool
+	MoreData    map[string]any
 	RedisClient *RedisClient
 }
 
@@ -23,7 +24,7 @@ type Config struct {
 type Option func(*Config)
 
 // NewConfig 创建一个默认配置
-func NewConfig(appID, appSecret, baseURL, orgID, grantType, isWriteLog string, opts ...Option) (*Config, error) {
+func NewConfig(appID, appSecret, baseURL, orgID, grantType, isWriteLog string, moreData map[string]any, opts ...Option) (*Config, error) {
 	//是否写入日志
 	isWriteLogBool, err := strconv.ParseBool(isWriteLog)
 	if err != nil {
@@ -46,6 +47,7 @@ func NewConfig(appID, appSecret, baseURL, orgID, grantType, isWriteLog string, o
 		OrgId:       orgID,
 		GrantType:   grantType,
 		IsWriteLog:  isWriteLogBool,
+		MoreData:    moreData,
 		RedisClient: redisClient,
 	}
 	for _, opt := range opts {

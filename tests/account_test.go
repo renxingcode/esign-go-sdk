@@ -16,7 +16,7 @@ func TestGetESignPersonsIdentityInfo(t *testing.T) {
 	}
 	client := esign.NewClient(testClient.Conf)
 
-	psnAccount := "13945618971" //手机号或邮箱
+	psnAccount := testClient.Conf.MoreData["signerPhone"].(string) //手机号或邮箱, .env中配置的SIGNER_PHONE配置项
 	accountDetail, err := client.Account.GetESignPersonsIdentityInfo(psnAccount, true)
 	if err != nil {
 		t.Errorf("Failed to get account detail: %v", err)
@@ -33,14 +33,36 @@ func TestCreateESignPersonsIdentity(t *testing.T) {
 	}
 	client := esign.NewClient(testClient.Conf)
 
-	name := "张小雨"           //姓名
-	mobile := "13945618971"    //手机号
-	thirdPartyUserId := mobile //第三方用户ID,可以和手机号相同
+	name := testClient.Conf.MoreData["signerName"].(string)    //姓名
+	mobile := testClient.Conf.MoreData["signerPhone"].(string) //手机号
+	thirdPartyUserId := mobile                                 //第三方用户ID,可以和手机号相同
 	createResp, err := client.Account.CreateESignPersonsIdentity(name, mobile, thirdPartyUserId, true)
 	if err != nil {
 		t.Errorf("Failed to get account detail: %v", err)
 	}
 	t.Logf("createResp: %v", utils.JsonMarshalNoEscape(createResp))
+}
+
+// TestUpdateESignPersonsIdentity 测试修改个人认证信息 | go test tests/account_test.go -v -run TestUpdateESignPersonsIdentity
+func TestUpdateESignPersonsIdentity(t *testing.T) {
+	testClient, err := initialize.NewTestClient()
+	if err != nil {
+		t.Errorf("创建测试客户端失败: %v\n", err)
+		return
+	}
+	client := esign.NewClient(testClient.Conf)
+
+	accountId := testClient.Conf.MoreData["signerAccountId"].(string) //账号ID
+	updateData := map[string]string{
+		"name": testClient.Conf.MoreData["signerName"].(string), //需要修改的姓名,如果不修改就不要传
+		//"mobile": "",   //需要修改的手机号,如果不修改就不要传
+		//"email":  "",   //需要修改的邮箱,如果不修改就不要传
+	}
+	updateResp, err := client.Account.UpdateESignPersonsIdentity(accountId, updateData, true)
+	if err != nil {
+		t.Errorf("Failed to update account: %v", err)
+	}
+	t.Logf("updateResp: %v", utils.JsonMarshalNoEscape(updateResp))
 }
 
 /*

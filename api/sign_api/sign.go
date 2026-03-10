@@ -259,7 +259,7 @@ func (s *SignService) ESignFlowRevoke(flowId string, writeLog bool) (eSignRespon
 	if err != nil {
 		return nil, api.BuildRequestESignHeadersError(actionName, err)
 	}
-	response, err := utils.SendHttpPutRequest(requestUrl, requestHeaders, writeLog)
+	response, err := utils.SendHttpPutRequest(requestUrl, nil, requestHeaders, writeLog)
 	if err != nil {
 		return nil, api.SendHttpRequestError(actionName, err)
 	}

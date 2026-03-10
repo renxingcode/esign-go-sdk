@@ -20,6 +20,7 @@ const (
 	CreateESignFileByTemplate    = "/v1/files/createByTemplate"            //通过模板创建文件 https://open.esign.cn/doc/opendoc/saas_api/cz9d65_sh823i
 	GetPersonsIdentityInfo       = "/v3/persons/identity-info"             //查询个人认证信息 https://open.esign.cn/doc/opendoc/auth3/vssvtu
 	CreatePersonsIdentity        = "/v1/accounts/createByThirdPartyUserId" //创建个人签署账号 https://open.esign.cn/doc/opendoc/paas_api/ox6nog
+	UpdatePersonsIdentity        = "/v1/accounts/{ACCOUNT_ID}"             //修改个人签署账号 https://open.esign.cn/doc/opendoc/saas_api/tzi4kd_ma1d8m
 	CreateFlowOneStep            = "/api/v2/signflows/createFlowOneStep"   //一步发起签署 https://open.esign.cn/doc/opendoc/paas_api/pwd6l4
 	GetESignExecuteUrlByFlowId   = "/v1/signflows/{FLOW_ID}/executeUrl"    //查询签署链接 https://open.esign.cn/doc/opendoc/saas_api/fh3gh1_dwz08n
 	ESignFlowRevokePath          = "/v1/signflows/{FLOW_ID}/revoke"        //撤回签署流程 https://open.esign.cn/doc/opendoc/saas_api/hv1dii_uqoamg
