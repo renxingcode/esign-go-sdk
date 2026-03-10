@@ -1,6 +1,7 @@
 package sign_api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/renxingcode/esign-go-sdk/api"
@@ -10,6 +11,7 @@ import (
 	"github.com/renxingcode/esign-go-sdk/config"
 	"github.com/renxingcode/esign-go-sdk/types"
 	"github.com/renxingcode/esign-go-sdk/utils"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"net/url"
 	"strings"
@@ -47,155 +49,208 @@ func NewSignService(cfg *config.Config, authSvc *auth_api.AuthService) *SignServ
 
 // ESignCreateFlowOneStep 请求e签宝发起签署流程,此流程为e签宝自动给签署人发送短信
 // e签宝官方接口文档 https://open.esign.cn/doc/opendoc/paas_api/pwd6l4
-func (s *SignService) ESignCreateFlowOneStep(requestESignCreateFlowData *types.ESignCreateFlowRequestData, writeLog bool) (eSignResponse *types.ESignCommonResponse, err error) {
+func (s *SignService) ESignCreateFlowOneStep(requestData *types.ESignCreateFlowRequestData, writeLog bool) (*types.ESignCommonResponse, error) {
 	actionName := "一步发起签署:"
 
-	//数据校验
-	signerName := requestESignCreateFlowData.SignerName
-	signerPhone := requestESignCreateFlowData.SignerPhone
-	//companySealID := requestESignCreateFlowData.CompanySealID
-	contractFiles := requestESignCreateFlowData.ContractFiles
-	if signerName == "" || signerPhone == "" || len(contractFiles) == 0 {
-		return nil, errors.New(actionName + "ESignCreateFlowOneStep传入的参数错误:签署人姓名、签署人手机号、合同文件列表都不能为空")
+	// ----- 1. 参数校验 -----
+	if requestData.SignerName == "" || requestData.SignerPhone == "" || len(requestData.ContractFiles) == 0 {
+		return nil, errors.New(actionName + "签署人姓名、手机号、合同文件列表都不能为空")
 	}
 
-	//Docs
-	docsList := make([]types.ESignCreateFlowDocs, 0)
-	//Signers
-	signersList := make([]types.ESignCreateFlowSigner, 0)
-	//公共变量
-	thirdOrderNo := "your_own_defined_third_order_no" //改为你自己业务需要的内容
-	signerAccountId, err := s.accountService.GetOrCreateESignSignerAccountId(signerName, signerPhone, false)
+	// ----- 2. 获取签署人账号ID（串行执行）-----
+	signerAccountID, err := s.accountService.GetOrCreateESignSignerAccountId(
+		requestData.SignerName, requestData.SignerPhone, false,
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s获取签署人账号失败: %w", actionName, err)
 	}
-	if signerAccountId == "" {
-		return nil, errors.New(actionName + "签署人账号获取失败")
+	if signerAccountID == "" {
+		return nil, errors.New(actionName + "签署人账号ID为空")
 	}
 
-	for _, contractFile := range contractFiles {
-		fileId := contractFile.EFileId
-		if fileId == "" {
-			return nil, errors.New("合同文件e_fileid不能为空")
-		}
-		templateId := contractFile.TemplateId
-		if templateId == "" {
-			return nil, errors.New("合同模板template_id不能为空")
-		}
+	// ----- 3. 准备并发处理合同文件 -----
+	const maxConcurrent = 10 // 最大并发数，可根据需要调整
+	sem := make(chan struct{}, maxConcurrent)
 
-		//docs
-		docsList = append(docsList, types.ESignCreateFlowDocs{
-			FileID: fileId,
-		})
+	// 定义结果结构
+	type fileResult struct {
+		FileID  string
+		Signers []types.ESignCreateFlowSigner
+	}
+	resultCh := make(chan fileResult, len(requestData.ContractFiles))
 
-		// 获取e签宝合同模板信息
-		eSignTemplateData, err := s.templateService.GetAndParseESignTemplateDetailData(templateId, true, false)
-		if err != nil {
-			return nil, err
-		}
+	g, ctx := errgroup.WithContext(context.Background())
+	thirdOrderNo := "your_own_defined_third_order_no" // 业务自定义订单号
 
-		var platformSign bool
-		signFieldsCompanyList := make([]types.EsignSignField, 0)
-		signFieldsUserList := make([]types.EsignSignField, 0)
-		for _, Participants := range eSignTemplateData.Participants {
-			for _, Components := range Participants.Components {
-				if Components.ComponentType == 6 { //签署区
-					//公司盖章区域company+_拼接
-					componentKeySlice := strings.Split(Components.ComponentKey, "_")
-					if len(componentKeySlice) == 0 {
-						return nil, errors.New(templateId + ": 合同模板签署区配置异常:应该是以下划线分隔的字符串,例如:company_xxx或者user_xxx")
-					}
-
-					signFieldsList := make([]types.EsignSignField, 0)
-					if componentKeySlice[0] == "company" { //机构签署
-						platformSign = true
-						signFieldsItem := types.EsignSignField{
-							AutoExecute:        true,
-							ActorIndentityType: 2, //机构签约类别，当签约主体为机构时必传：2-机构盖章
-							FileID:             fileId,
-							//SealID:             requestESignCreateFlowData.CompanySealID, //公司印章ID,如果注释这行,e签宝就回用默认的公司盖章ID处理
-							PosBean: types.EsignPosBean{
-								PosPage: Components.ComponentPosition.ComponentPageNum,
-								PosX:    Components.ComponentPosition.ComponentPositionX,
-								PosY:    Components.ComponentPosition.ComponentPositionY,
-							},
-							SignDateBeanType: 1, //是否需要添加签署日期，0-禁止 1-必须 2-不限制，默认0
-						}
-						signFieldsList = append(signFieldsList, signFieldsItem)
-						signFieldsCompanyList = append(signFieldsCompanyList, signFieldsItem)
-					} else { //个人签署
-						platformSign = false
-						signFieldsItem := types.EsignSignField{
-							AutoExecute: false,
-							FileID:      fileId,
-							PosBean: types.EsignPosBean{
-								PosPage: Components.ComponentPosition.ComponentPageNum,
-								PosX:    Components.ComponentPosition.ComponentPositionX,
-								PosY:    Components.ComponentPosition.ComponentPositionY,
-							},
-							SignDateBeanType: 2, //是否需要添加签署日期，0-禁止 1-必须 2-不限制，默认0
-						}
-						signFieldsList = append(signFieldsList, signFieldsItem)
-						signFieldsUserList = append(signFieldsUserList, signFieldsItem)
-					}
-
-					//types.ESignCreateFlowSigner
-					signersItemData := types.ESignCreateFlowSigner{
-						PlatformSign: platformSign,
-						SignerAccount: types.SignerAccount{
-							SignerAccountID: signerAccountId,
-						},
-						SignFields:   signFieldsList,
-						ThirdOrderNo: thirdOrderNo,
-					}
-					signersList = append(signersList, signersItemData)
-
-				}
+	// 为每个合同文件启动一个 goroutine
+	for _, cf := range requestData.ContractFiles {
+		cf := cf // 捕获循环变量
+		g.Go(func() error {
+			// 并发控制：获取信号量
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-ctx.Done():
+				return ctx.Err()
 			}
-		}
-		if len(signFieldsCompanyList) == 0 {
-			return nil, errors.New(fmt.Sprintf("合同模板缺少company_xxx控件编码;合同模板ID:%s,合同模板名称:%s", templateId, eSignTemplateData.SignTemplateName))
-		}
-		if len(signFieldsUserList) == 0 {
-			return nil, errors.New(fmt.Sprintf("合同模板个人签署区缺少user_xxx控件编码;合同模板ID:%s,合同模板名称:%s", templateId, eSignTemplateData.SignTemplateName))
-		}
+
+			// 执行单个文件处理
+			fileID, signers, err := s.processSingleFile(ctx, cf, signerAccountID, thirdOrderNo, writeLog)
+			if err != nil {
+				return err // errgroup 会取消其他任务
+			}
+
+			// 发送结果（非阻塞，channel 有缓冲）
+			select {
+			case resultCh <- fileResult{FileID: fileID, Signers: signers}:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})
 	}
 
-	//e签宝回调通知地址
-	callbackUrl := "http://yourdomain.com/esign/call/back/notice"
+	// 等待所有 goroutine 完成并关闭 resultCh
+	go func() {
+		_ = g.Wait() // 等待所有任务完成或出错
+		close(resultCh)
+	}()
 
-	// 构建请求参数
+	// ----- 4. 收集并发处理结果 -----
+	docsList := make([]types.ESignCreateFlowDocs, 0, len(requestData.ContractFiles))
+	signersList := make([]types.ESignCreateFlowSigner, 0)
+
+	for res := range resultCh {
+		docsList = append(docsList, types.ESignCreateFlowDocs{FileID: res.FileID})
+		signersList = append(signersList, res.Signers...)
+	}
+
+	// 检查是否有错误发生
+	if err = g.Wait(); err != nil {
+		return nil, fmt.Errorf("%s并发处理合同文件失败: %w", actionName, err)
+	}
+
+	// ----- 5. 构建最终请求并调用e签宝接口 -----
+	callbackURL := "http://yourdomain.com/esign/call/back/notice"
 	requestBody := &types.ESignCreateFlowRequest{
 		Docs: docsList,
 		FlowInfo: types.ESignCreateFlowFlowInfo{
 			AutoArchive:   true,
 			AutoInitiate:  true,
-			BusinessScene: "合同签署", //可以改为你自定义的内容
+			BusinessScene: "合同签署",
 			FlowConfigInfo: types.EsignFlowConfigInfo{
-				NoticeDeveloperUrl: callbackUrl,
+				NoticeDeveloperUrl: callbackURL,
 			},
 		},
 		Signers: signersList,
 	}
 
-	// 发起HTTP请求
-	requestUrl := s.config.BaseURL + api.CreateFlowOneStep
-	requestHeaders, err := s.authService.RequestESignHeaders()
+	requestURL := s.config.BaseURL + api.CreateFlowOneStep
+	headers, err := s.authService.RequestESignHeaders()
 	if err != nil {
 		return nil, api.BuildRequestESignHeadersError(actionName, err)
 	}
-	response, err := utils.SendHttpPostRequest(requestUrl, requestBody, requestHeaders, writeLog)
+	resp, err := utils.SendHttpPostRequest(requestURL, requestBody, headers, writeLog)
 	if err != nil {
 		return nil, api.SendHttpRequestError(actionName, err)
 	}
 
-	// 解析响应体
-	eSignResponse, err = api.GetESignCommonResponse(response)
+	eSignResponse, err := api.GetESignCommonResponse(resp)
 	if err != nil {
 		return nil, api.ParseESignResponseError(actionName, err)
 	}
-
 	return eSignResponse, nil
+}
+
+// processSingleFile 处理单个合同文件：获取模板详情、解析签署区、生成签署人条目
+func (s *SignService) processSingleFile(
+	ctx context.Context,
+	file types.ESignCreateFlowFiles,
+	signerAccountID, thirdOrderNo string,
+	writeLog bool,
+) (fileID string, signers []types.ESignCreateFlowSigner, err error) {
+	// 校验文件必要字段
+	if file.EFileId == "" {
+		return "", nil, errors.New("合同文件 e_fileid 不能为空")
+	}
+	if file.TemplateId == "" {
+		return "", nil, errors.New("合同模板 template_id 不能为空")
+	}
+
+	// 获取模板详情
+	templateData, err := s.templateService.GetAndParseESignTemplateDetailData(file.TemplateId, true, false)
+	if err != nil {
+		return "", nil, fmt.Errorf("获取模板详情失败: %w", err)
+	}
+
+	var (
+		fileSigners []types.ESignCreateFlowSigner
+		hasCompany  bool
+		hasUser     bool
+	)
+
+	// 遍历模板参与方与组件，解析签署区
+	for _, participant := range templateData.Participants {
+		for _, comp := range participant.Components {
+			if comp.ComponentType != 6 { // 6=签署区
+				continue
+			}
+
+			// 解析控件编码，判断签署主体类型
+			keyParts := strings.Split(comp.ComponentKey, "_")
+			if len(keyParts) == 0 {
+				return "", nil, fmt.Errorf("模板 %s 签署区控件编码格式错误: %s", file.TemplateId, comp.ComponentKey)
+			}
+
+			var platformSign bool
+			signField := types.EsignSignField{
+				FileID: file.EFileId,
+				PosBean: types.EsignPosBean{
+					PosPage: comp.ComponentPosition.ComponentPageNum,
+					PosX:    comp.ComponentPosition.ComponentPositionX,
+					PosY:    comp.ComponentPosition.ComponentPositionY,
+				},
+				SignDateBeanType: 2, // 默认2（不限制），机构签署时会覆盖
+			}
+
+			if keyParts[0] == "company" { // 机构签署
+				platformSign = true
+				signField.AutoExecute = true
+				signField.ActorIndentityType = 2 // 机构盖章
+				// signField.SealID = requestData.CompanySealID // 若需指定印章可取消注释
+				signField.SignDateBeanType = 1 // 必须包含签署日期
+				hasCompany = true
+			} else { // 个人签署
+				platformSign = false
+				signField.AutoExecute = false
+				signField.SignDateBeanType = 2 // 不限制
+				hasUser = true
+			}
+
+			// 每个签署区生成一个独立的签署人条目（与原逻辑一致）
+			signerItem := types.ESignCreateFlowSigner{
+				PlatformSign: platformSign,
+				SignerAccount: types.SignerAccount{
+					SignerAccountID: signerAccountID,
+				},
+				SignFields:   []types.EsignSignField{signField},
+				ThirdOrderNo: thirdOrderNo,
+			}
+			fileSigners = append(fileSigners, signerItem)
+		}
+	}
+
+	// 校验必须同时包含机构和个人签署区
+	if !hasCompany {
+		return "", nil, fmt.Errorf("合同模板缺少 company_xxx 控件编码; 模板ID: %s, 模板名称: %s",
+			file.TemplateId, templateData.SignTemplateName)
+	}
+	if !hasUser {
+		return "", nil, fmt.Errorf("合同模板个人签署区缺少 user_xxx 控件编码; 模板ID: %s, 模板名称: %s",
+			file.TemplateId, templateData.SignTemplateName)
+	}
+
+	return file.EFileId, fileSigners, nil
 }
 
 // GetESignExecuteUrlByFlowId 查询签署链接
